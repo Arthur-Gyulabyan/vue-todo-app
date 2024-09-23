@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  GitHubRepo:
+    Type: String
+    Description: "The GitHub repository (username/repo) where the code is hosted."
+    Default: Arthur-Gyulabyan/vue-todo-app
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: "The branch of the GitHub repository to use for the pipeline."
+  GitHubAccessToken:
+    Type: String
+    Description: "The GitHub Personal Access Token for access to the repository."
+    NoEcho: true
+  AppName:
+    Type: String
+    Description: "The name of the application."
+    Default: vue-todo-app
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AppName}-bucket-${AWS::AccountId}"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+    DeletionPolicy: Retain
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
+
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Policies:
+        - PolicyName: CodeBuildAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub "${AppName}-BuildProject"
+      Source:
+        Type: GITHUB
+        Location: !Sub "https://github.com/Arthur-Gyulabyan/vue-todo-app.git"
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: NODE_ENV
+            Value: production
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: NO_ARTIFACTS
+
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess
+        - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref S3Bucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceCode
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: '1'
+              Configuration:
+                Owner: !Select [ 0, !Split [ '/', !Ref GitHubRepo ] ]
+                Repo: !Select [ 1, !Split [ '/', !Ref GitHubRepo ] ]
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubAccessToken
+              OutputArtifacts:
+                - Name: SourceOutput
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+        - Name: Deploy
+          Actions:
+            - Name: DeployToS3
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: S3
+                Version: '1'
+              InputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                BucketName: !Ref S3Bucket
+                Extract: true
+
+Outputs:
+  S3BucketURL:
+    Description: "URL of the S3 bucket hosting the web app."
+    Value: !Sub "http://${S3Bucket}.s3-website.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub "${AWS::StackName}-S3BucketURL"
+  S3BucketName:
+    Description: "Name of the S3 bucket created by the stack."
+    Value: !Ref S3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-S3BucketName"
+  CodePipelineName:
+    Description: "Name of the CodePipeline for continuous deployment."
+    Value: !Ref Pipeline
+    Export:
+      Name: !Sub "${AWS::StackName}-CodePipelineName"
+  CodeBuildProjectName:
+    Description: "Name of the CodeBuild project used in the pipeline."
+    Value: !Ref CodeBuildProject
+    Export:
+      Name: !Sub "${AWS::StackName}-CodeBuildProjectName"
+  AppSyncApiURL:
+    Description: "The endpoint for the AppSync GraphQL API (if applicable)."
+    Value: "REPLACE_WITH_APPSYNC_API_URL"
+    Export:
+      Name: !Sub "${AWS::StackName}-AppSyncApiURL"
+  CloudFormationStackName:
+    Description: "Name of the CloudFormation stack."
+    Value: !Ref AWS::StackName
+    Export:
+      Name: !Sub "${AWS::StackName}-CloudFormationStackName"
+  Region:
+    Description: "The AWS region where the stack is deployed."
+    Value: !Ref AWS::Region
+    Export:
+      Name: !Sub "${AWS::StackName}-Region"
+
