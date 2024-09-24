@@ -263,7 +263,115 @@ Resources:
           "version" : "2017-02-28",
           "operation" : "Scan"
         }
+      ResponseMappingTemplate: $util.toJson($context.result.items)
+
+  CreateTodoResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      DataSourceName: !GetAtt AppSyncDataSource.Name
+      TypeName: Mutation
+      FieldName: createTodo
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "PutItem",
+          "key": {
+            "id": $util.dynamodb.toDynamoDBJson($util.autoId())
+          },
+          "attributeValues": {
+            "description": $util.dynamodb.toDynamoDBJson($ctx.args.description),
+            "completed": $util.dynamodb.toDynamoDBJson(false),
+            "createdAt": $util.dynamodb.toDynamoDBJson($util.time.nowISO8601())
+          }
+        }
       ResponseMappingTemplate: $util.toJson($context.result)
+
+  UpdateTodoResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      DataSourceName: !GetAtt AppSyncDataSource.Name
+      TypeName: Mutation
+      FieldName: updateTodo
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "UpdateItem",
+          "key": {
+            "id": $util.dynamodb.toDynamoDBJson($ctx.args.id)
+          },
+          "update": {
+            "expression": "SET completed = :completed",
+            "expressionValues": {
+              ":completed": $util.dynamodb.toDynamoDBJson($ctx.args.completed)
+            }
+          }
+        }
+      ResponseMappingTemplate: $util.toJson($context.result)
+
+  DeleteTodoResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      DataSourceName: !GetAtt AppSyncDataSource.Name
+      TypeName: Mutation
+      FieldName: deleteTodo
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "DeleteItem",
+          "key": {
+            "id": $util.dynamodb.toDynamoDBJson($ctx.args.id)
+          }
+        }
+      ResponseMappingTemplate: $util.toJson($context.result)
+
+  OnTodoAddedResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Subscription
+      FieldName: onTodoAdded
+      DataSourceName: !GetAtt AppSyncDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "Scan"
+        }
+      ResponseMappingTemplate: $util.toJson($context.result)
+
+  OnTodoUpdatedResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Subscription
+      FieldName: onTodoUpdated
+      DataSourceName: !GetAtt AppSyncDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "Scan"
+        }
+      ResponseMappingTemplate: $util.toJson($context.result)
+
+  OnTodoDeletedResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Subscription
+      FieldName: onTodoDeleted
+      DataSourceName: !GetAtt AppSyncDataSource.Name
+      RequestMappingTemplate: |
+        {
+          "version": "2017-02-28",
+          "operation": "Scan"
+        }
+      ResponseMappingTemplate: $util.toJson($context.result)
+
 
 Outputs:
   S3BucketURL:
