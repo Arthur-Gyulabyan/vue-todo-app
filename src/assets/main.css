@@ -15,6 +15,56 @@ a,
   padding: 3px;
 }
 
+
+.button {
+  gap: 4px;
+  border: none;
+  display: flex;
+  cursor: pointer;
+  padding: 8px 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  color: var(--color-text);
+  align-items: center;
+  background-color: var(--color-background);
+  transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out, transform 0.125s ease-out;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.v-field__field .v-field__input {
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 100%;
+  min-height: auto;
+  outline: none;
+}
+
+.v-field__field .v-label.v-field-label {
+  font-size: 16px;
+  line-height: 100%;
+}
+
+.v-btn.v-btn--size-default.v-btn--density-default {
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 100%;
+  height: auto;
+}
+
+.v-btn .v-icon {
+  font-size: 16px;
+}
+
+.v-btn .v-btn__content {
+  font-size: 16px;
+  gap: 8px;
+}
+
 @media (hover: hover) {
   a:hover {
     background-color: hsla(160, 100%, 37%, 0.2);
@@ -25,11 +75,5 @@ a,
   body {
     display: flex;
     place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
   }
 }
