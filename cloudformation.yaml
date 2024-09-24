@@ -156,6 +156,115 @@ Resources:
                 BucketName: !Ref S3Bucket
                 Extract: true
 
+  TodoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "TodoTable"
+      AttributeDefinitions:
+        - AttributeName: "id"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "id"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
+
+  AppSyncApi:
+    Type: AWS::AppSync::GraphQLApi
+    Properties:
+      Name: "TodoAppSyncAPI"
+      AuthenticationType: API_KEY
+
+  AppSyncApiKey:
+    Type: AWS::AppSync::ApiKey
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Expires: 1758672000
+
+  AppSyncSchema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Definition: |
+        type Todo {
+          id: ID!
+          description: String!
+          completed: Boolean!
+          createdAt: AWSDateTime!
+        }
+        
+        type Query {
+          getTodos: [Todo]
+        }
+        
+        type Mutation {
+          createTodo(description: String!): Todo
+          updateTodo(id: ID!, completed: Boolean!): Todo
+          deleteTodo(id: ID!): ID
+        }
+        
+        type Subscription {
+          onTodoAdded: Todo
+          onTodoUpdated: Todo
+          onTodoDeleted: ID
+        }
+        
+        schema {
+          query: Query
+          mutation: Mutation
+          subscription: Subscription
+        }
+
+  AppSyncDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Name: "TodoDynamoDataSource"
+      Type: "AMAZON_DYNAMODB"
+      DynamoDBConfig:
+        TableName: !Ref TodoTable
+        AwsRegion: !Ref AWS::Region
+      ServiceRoleArn: !GetAtt AppSyncDynamoDBRole.Arn
+
+  AppSyncDynamoDBRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: appsync.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: "AppSyncDynamoDBAccess"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt TodoTable.Arn
+
+  QueryAllTodosResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      DataSourceName: !GetAtt AppSyncDataSource.Name
+      TypeName: Query
+      FieldName: getTodos
+      RequestMappingTemplate: |
+        {
+          "version" : "2017-02-28",
+          "operation" : "Scan"
+        }
+      ResponseMappingTemplate: $util.toJson($context.result)
+
 Outputs:
   S3BucketURL:
     Description: "URL of the S3 bucket hosting the web app."
@@ -178,10 +287,15 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-CodeBuildProjectName"
   AppSyncApiURL:
-    Description: "The endpoint for the AppSync GraphQL API (if applicable)."
-    Value: "REPLACE_WITH_APPSYNC_API_URL"
+    Description: "The endpoint for the AppSync GraphQL API"
+    Value: !GetAtt AppSyncApi.GraphQLUrl
     Export:
       Name: !Sub "${AWS::StackName}-AppSyncApiURL"
+  AppSyncApiKeyValue:
+    Description: "The API Key for accessing the AppSync API."
+    Value: !Ref AppSyncApiKey
+    Export:
+      Name: !Sub "${AWS::StackName}-AppSyncApiKey"
   CloudFormationStackName:
     Description: "Name of the CloudFormation stack."
     Value: !Ref AWS::StackName
