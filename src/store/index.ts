@@ -1,7 +1,12 @@
 import { createStore } from 'vuex';
+import type { Todo } from '@/API';
+
+interface State {
+  todos: Todo[];
+}
 
 const store = createStore({
-  state() {
+  state(): State {
     return {
       todos: []
     };
@@ -10,11 +15,11 @@ const store = createStore({
     setTodos(state, todos) {
       state.todos = todos;
     },
-    addTodo(state, todo) {
+    addTodo(state, todo: Todo) {
       state.todos = [todo, ...state.todos];
     },
-    updateTodo(state, updatedTodo) {
-      const index = state.todos.findIndex((todo) => todo.id === updatedTodo.id);
+    updateTodo(state, updatedTodo: Todo) {
+      const index = state.todos.findIndex((todo: Todo) => todo.id === updatedTodo.id);
       if (index !== -1) {
         state.todos[index] = updatedTodo;
       }

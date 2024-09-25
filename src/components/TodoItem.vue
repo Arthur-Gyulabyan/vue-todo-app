@@ -21,7 +21,7 @@ onDeleteDone((result) => {
   }
 });
 
-const deleteTodoItem = (id) => {
+const deleteTodoItem = (id: String) => {
   deleteTodoMutation({ id });
 };
 
@@ -34,7 +34,7 @@ const updateTodoItem = () => {};
       completed: todo.completed
     }"
     class="todo-list-item"
-    @click.prevent="() => updateTodo(todo)"
+    @click.prevent="() => updateTodoItem()"
   >
     <div>
       <span>{{ todo.description }}</span>
