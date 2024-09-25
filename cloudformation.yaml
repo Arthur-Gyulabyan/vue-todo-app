@@ -78,7 +78,7 @@ Resources:
       Name: !Sub "${AppName}-BuildProject"
       Source:
         Type: GITHUB
-        Location: !Sub "https://github.com/Arthur-Gyulabyan/vue-todo-app.git"
+        Location: !Sub "https://github.com/${GitHubRepo}.git"
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
         Image: aws/codebuild/standard:5.0
