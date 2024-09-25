@@ -21,7 +21,7 @@ const store = createStore({
     updateTodo(state, updatedTodo: Todo) {
       const index = state.todos.findIndex((todo: Todo) => todo.id === updatedTodo.id);
       if (index !== -1) {
-        state.todos[index] = updatedTodo;
+        state.todos = state.todos.map((item, i) => (i === index ? updatedTodo : item));
       }
     },
     deleteTodo(state, todoId) {

@@ -37,8 +37,8 @@ onCreateTodoError((error) => {
 <template>
   <form @submit.prevent="onCreateTodo">
     <div class="create-todo-wrapper">
-      <v-text-field v-model="description" label="Description" variant="outlined" color="primary" />
-      <v-btn type="submit" variant="tonal" color="primary">
+      <v-text-field v-model="description" label="Description" variant="outlined" color="default" />
+      <v-btn type="submit" variant="tonal" color="green">
         <v-icon icon="mdi-plus" size="small" />
         Create
       </v-btn>

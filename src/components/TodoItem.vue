@@ -3,7 +3,7 @@ import { defineProps } from 'vue';
 import { useStore } from 'vuex';
 import gql from 'graphql-tag';
 import { useMutation } from '@vue/apollo-composable';
-import { deleteTodo } from '@/graphql/mutations';
+import { deleteTodo, updateTodo } from '@/graphql/mutations';
 
 defineProps({
   todo: {
@@ -13,31 +13,38 @@ defineProps({
 });
 
 const store = useStore();
-const { mutate: deleteTodoMutation, onDone: onDeleteDone } = useMutation(gql(deleteTodo));
+const { mutate: deleteTodoMutation, onDone: onDeleteSuccess } = useMutation(gql(deleteTodo));
+const { mutate: updateTodoMutation, onDone: onUpdateSuccess } = useMutation(gql(updateTodo));
 
-onDeleteDone((result) => {
-  if (result?.data?.deleteTodo) {
-    store.dispatch('deleteTodoAction', result.data.deleteTodo.id);
-  }
-});
+const updateTodoItem = (todo) => {
+  updateTodoMutation({
+    id: todo.id,
+    completed: !todo.completed
+  });
+};
 
 const deleteTodoItem = (id: String) => {
   deleteTodoMutation({ id });
 };
 
-const updateTodoItem = () => {};
+onDeleteSuccess((result) => {
+  if (result?.data?.deleteTodo) {
+    store.dispatch('deleteTodoAction', result.data.deleteTodo.id);
+  }
+});
+
+onUpdateSuccess((result) => {
+  if (result?.data?.updateTodo) {
+    store.dispatch('updateTodoAction', result.data.updateTodo);
+  }
+});
 </script>
 
 <template>
-  <li
-    :class="{
-      completed: todo.completed
-    }"
-    class="todo-list-item"
-    @click.prevent="() => updateTodoItem()"
-  >
-    <div>
-      <span>{{ todo.description }}</span>
+  <li :class="{ completed: todo.completed }" class="todo-list-item" @click.prevent="() => updateTodoItem(todo)">
+    <div class="todo-list-item-description-wrapper">
+      <v-checkbox color="green" :model-value="todo.completed" hide-details />
+      <span class="todo-list-item-description">{{ todo.description }}</span>
     </div>
     <v-btn @click.stop="deleteTodoItem(todo.id)" variant="tonal" color="error" size="small">Delete</v-btn>
   </li>
@@ -56,6 +63,16 @@ const updateTodoItem = () => {};
 }
 
 .completed {
+  background-color: rgb(76, 175, 80, 10%);
+}
+
+.todo-list-item-description-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.completed .todo-list-item-description {
   text-decoration: line-through;
 }
 </style>
