@@ -39,6 +39,15 @@
   gap: 8px;
 }
 
+.v-checkbox .v-selection-control {
+  min-height: auto;
+}
+
+.v-selection-control__wrapper, .v-selection-control__input {
+  width: fit-content;
+  height: fit-content;
+}
+
 @media (min-width: 1024px) {
   body {
     display: flex;

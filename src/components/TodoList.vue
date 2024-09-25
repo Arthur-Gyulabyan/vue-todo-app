@@ -2,19 +2,26 @@
 import { computed } from 'vue';
 import gql from 'graphql-tag';
 import { useStore } from 'vuex';
-import { useQuery } from '@vue/apollo-composable';
+import { useQuery, useSubscription } from '@vue/apollo-composable';
 import TodoItem from '@/components/TodoItem.vue';
 import CreateTodo from '@/components/CreateTodo.vue';
 import { getTodos } from '@/graphql/queries';
+import { onTodoDeleted } from '@/graphql/subscriptions';
 
 const store = useStore();
 const todos = computed(() => store.getters.allTodos);
-const { onResult: onGetTodoResult } = useQuery(gql(getTodos));
+const { onResult: onGetTodoResult, loading } = useQuery(gql(getTodos));
+
+const { onResult: onDeleteTodoResult } = useSubscription(gql(onTodoDeleted));
 
 onGetTodoResult((result) => {
   if (result?.data?.getTodos) {
     store.dispatch('saveTodosAction', result.data.getTodos);
   }
+});
+
+onDeleteTodoResult((result) => {
+  console.log(result, 'RESULT');
 });
 </script>
 
@@ -32,7 +39,7 @@ onGetTodoResult((result) => {
         <ul v-if="todos && todos.length > 0" class="todo-list">
           <TodoItem v-for="todo in todos" :key="todo.id" :todo="todo" />
         </ul>
-        <p class="no-todos" v-else>You're all caught up! No tasks on your list.</p>
+        <p class="no-todos" v-else-if="!loading">You're all caught up! No tasks on your list.</p>
       </div>
     </div>
   </div>

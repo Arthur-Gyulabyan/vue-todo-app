@@ -251,6 +251,9 @@ Resources:
                   - dynamodb:PutItem
                   - dynamodb:UpdateItem
                   - dynamodb:DeleteItem
+                  - appsync:Subscribe
+                  - appsync:StartSubscription
+                  - appsync:Connect
                 Resource: !GetAtt TodoTable.Arn
 
   QueryAllTodosResolver:

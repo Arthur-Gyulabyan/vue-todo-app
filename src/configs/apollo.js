@@ -1,39 +1,33 @@
-import { createClient } from 'graphql-ws';
-import { getMainDefinition } from '@apollo/client/utilities';
-import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { DefaultApolloClient, provideApolloClient } from '@vue/apollo-composable';
-import { ApolloClient, HttpLink, InMemoryCache, split } from '@apollo/client/core';
+import { createSubscriptionHandshakeLink } from 'aws-appsync-subscription-link';
+import { ApolloClient, InMemoryCache, createHttpLink, ApolloLink } from '@apollo/client/core';
 
-const httpLink = new HttpLink({
+const api_header = {
+  'x-api-key': import.meta.env.VITE_AWS_APP_SYNC_API_KEY
+};
+
+const auth = {
+  type: 'API_KEY',
+  apiKey: import.meta.env.VITE_AWS_APP_SYNC_API_KEY
+};
+
+const httpLink = createHttpLink({
   uri: import.meta.env.VITE_AWS_APP_SYNC_URL,
-  headers: {
-    'x-api-key': import.meta.env.VITE_AWS_APP_SYNC_API_KEY
-  }
+  headers: api_header
 });
 
-const wsLink = new GraphQLWsLink(
-  createClient({
-    url: import.meta.env.VITE_AWS_APP_SYNC_URL,
-    connectionParams: {
+const link = ApolloLink.from([
+  createSubscriptionHandshakeLink(
+    {
+      url: import.meta.env.VITE_AWS_APP_SYNC_URL,
       region: import.meta.env.VITE_AWS_REGION,
-      auth: {
-        type: 'API_KEY',
-        apiKey: import.meta.env.VITE_AWS_APP_SYNC_API_KEY
-      }
-    }
-  })
-);
+      auth
+    },
+    httpLink
+  )
+]);
 
-const link = split(
-  ({ query }) => {
-    const definition = getMainDefinition(query);
-    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
-  },
-  wsLink,
-  httpLink
-);
-
-const apolloClient = new ApolloClient({
+export const apolloClient = new ApolloClient({
   link,
   cache: new InMemoryCache()
 });

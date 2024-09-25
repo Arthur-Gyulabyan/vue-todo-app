@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { defineProps } from 'vue';
 import { useStore } from 'vuex';
 import gql from 'graphql-tag';
 import { useMutation } from '@vue/apollo-composable';
@@ -13,7 +12,7 @@ defineProps({
 });
 
 const store = useStore();
-const { mutate: deleteTodoMutation, onDone: onDeleteSuccess } = useMutation(gql(deleteTodo));
+const { mutate: deleteTodoMutation, onDone: onDeleteSuccess, loading: loadingDelete } = useMutation(gql(deleteTodo));
 const { mutate: updateTodoMutation, onDone: onUpdateSuccess } = useMutation(gql(updateTodo));
 
 const updateTodoItem = (todo) => {
@@ -46,7 +45,9 @@ onUpdateSuccess((result) => {
       <v-checkbox color="green" :model-value="todo.completed" hide-details />
       <span class="todo-list-item-description">{{ todo.description }}</span>
     </div>
-    <v-btn @click.stop="deleteTodoItem(todo.id)" variant="tonal" color="error" size="small">Delete</v-btn>
+    <v-btn @click.stop="deleteTodoItem(todo.id)" variant="tonal" color="error" size="small" :loading="loadingDelete">
+      Delete
+    </v-btn>
   </li>
 </template>
 
