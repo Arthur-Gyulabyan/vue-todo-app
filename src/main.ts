@@ -6,7 +6,7 @@ import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
 import { Amplify } from 'aws-amplify';
 import { setupApollo } from './configs/apollo';
-import awsConfig from './configs/aws-exports';
+import awsConfig from './configs/aws';
 import store from './store';
 import './assets/main.css';
 import App from './App.vue';
