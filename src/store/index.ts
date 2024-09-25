@@ -8,7 +8,8 @@ interface State {
 const store = createStore({
   state(): State {
     return {
-      todos: []
+      todos: [],
+      snackbar: { open: false, text: '' }
     };
   },
   mutations: {
@@ -26,6 +27,12 @@ const store = createStore({
     },
     deleteTodo(state, todoId) {
       state.todos = state.todos.filter((todo) => todo.id !== todoId);
+    },
+    openSnackbar(state, text) {
+      state.snackbar = { open: true, text };
+    },
+    resetSnackbar(state) {
+      state.snackbar = { open: false, text: '' };
     }
   },
   actions: {
@@ -40,11 +47,20 @@ const store = createStore({
     },
     deleteTodoAction({ commit }, todoId) {
       commit('deleteTodo', todoId);
+    },
+    openSnackbarAction({ commit }, text) {
+      commit('openSnackbar', text);
+    },
+    resetSnackbarAction({ commit }) {
+      commit('resetSnackbar');
     }
   },
   getters: {
     allTodos(state) {
       return state.todos;
+    },
+    snackbar(state) {
+      return state.snackbar;
     }
   }
 });

@@ -4,14 +4,19 @@ import gql from 'graphql-tag';
 import { useStore } from 'vuex';
 import { useQuery, useSubscription } from '@vue/apollo-composable';
 import TodoItem from '@/components/TodoItem.vue';
+import Snackbar from '@/components/Snackbar.vue';
 import CreateTodo from '@/components/CreateTodo.vue';
 import { getTodos } from '@/graphql/queries';
-import { onTodoDeleted } from '@/graphql/subscriptions';
+import { onTodoDeleted, onTodoAdded, onTodoUpdated } from '@/graphql/subscriptions';
 
 const store = useStore();
 const todos = computed(() => store.getters.allTodos);
+const snackbar = computed(() => store.getters.snackbar);
+
 const { onResult: onGetTodoResult, loading } = useQuery(gql(getTodos));
 
+const { onResult: onAddTodoResult } = useSubscription(gql(onTodoAdded));
+const { onResult: onUpdateTodoResult } = useSubscription(gql(onTodoUpdated));
 const { onResult: onDeleteTodoResult } = useSubscription(gql(onTodoDeleted));
 
 onGetTodoResult((result) => {
@@ -20,9 +25,28 @@ onGetTodoResult((result) => {
   }
 });
 
-onDeleteTodoResult((result) => {
-  console.log(result, 'RESULT');
+onAddTodoResult((result) => {
+  console.log(result);
+  if (result?.data?.onTodoAdded) {
+    store.dispatch('addTodoAction', result.data.onTodoAdded);
+  }
 });
+
+onUpdateTodoResult((result) => {
+  if (result?.data?.onTodoUpdated) {
+    store.dispatch('updateTodoAction', result.data.onTodoUpdated);
+  }
+});
+
+onDeleteTodoResult((result) => {
+  if (result?.data?.onTodoDeleted) {
+    store.dispatch('deleteTodoAction', result.data.onTodoDeleted.id);
+  }
+});
+
+const updateSnackbar = () => {
+  store.dispatch('resetSnackbarAction');
+};
 </script>
 
 <template>
@@ -40,9 +64,13 @@ onDeleteTodoResult((result) => {
           <TodoItem v-for="todo in todos" :key="todo.id" :todo="todo" />
         </ul>
         <p class="no-todos" v-else-if="!loading">You're all caught up! No tasks on your list.</p>
+        <div class="d-flex justify-center" v-else>
+          <v-progress-circular color="green" indeterminate />
+        </div>
       </div>
     </div>
   </div>
+  <Snackbar :snackbar="snackbar.open" :text="snackbar.text" @update:snackbar="updateSnackbar" />
 </template>
 
 <style scoped>
@@ -65,12 +93,18 @@ onDeleteTodoResult((result) => {
 }
 
 .content {
+  height: calc(100% - 148px);
   padding: 24px;
 }
 
 .title {
   font-size: 32px;
   font-weight: 600;
+}
+
+.todo-list-wrapper {
+  height: 100%;
+  overflow-y: auto;
 }
 
 .todo-list {

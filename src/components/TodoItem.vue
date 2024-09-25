@@ -13,7 +13,7 @@ defineProps({
 
 const store = useStore();
 const { mutate: deleteTodoMutation, onDone: onDeleteSuccess, loading: loadingDelete } = useMutation(gql(deleteTodo));
-const { mutate: updateTodoMutation, onDone: onUpdateSuccess } = useMutation(gql(updateTodo));
+const { mutate: updateTodoMutation, onDone: onUpdateSuccess, loading: loadingUpdate } = useMutation(gql(updateTodo));
 
 const updateTodoItem = (todo) => {
   updateTodoMutation({
@@ -26,24 +26,21 @@ const deleteTodoItem = (id: String) => {
   deleteTodoMutation({ id });
 };
 
-onDeleteSuccess((result) => {
-  if (result?.data?.deleteTodo) {
-    store.dispatch('deleteTodoAction', result.data.deleteTodo.id);
-  }
+onDeleteSuccess(() => {
+  store.dispatch('openSnackbarAction', 'Successfully deleted!');
 });
 
-onUpdateSuccess((result) => {
-  if (result?.data?.updateTodo) {
-    store.dispatch('updateTodoAction', result.data.updateTodo);
-  }
+onUpdateSuccess(() => {
+  store.dispatch('openSnackbarAction', 'Successfully updated!');
 });
 </script>
 
 <template>
   <li :class="{ completed: todo.completed }" class="todo-list-item" @click.prevent="() => updateTodoItem(todo)">
-    <div class="todo-list-item-description-wrapper">
-      <v-checkbox color="green" :model-value="todo.completed" hide-details />
-      <span class="todo-list-item-description">{{ todo.description }}</span>
+    <div class="d-flex align-center ga-3 w-100">
+      <v-checkbox color="green" :model-value="todo.completed" hide-details v-if="!loadingUpdate" />
+      <v-progress-circular color="green" size="small" indeterminate v-else />
+      <p class="todo-list-item-description w-100">{{ todo.description }}</p>
     </div>
     <v-btn @click.stop="deleteTodoItem(todo.id)" variant="tonal" color="error" size="small" :loading="loadingDelete">
       Delete
@@ -55,22 +52,18 @@ onUpdateSuccess((result) => {
 .todo-list-item {
   display: flex;
   justify-content: space-between;
+  column-gap: 8px;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   border: 1px solid var(--color-border);
   padding: 8px;
   border-radius: 4px;
-  box-shadow: rgba(149, 157, 165, 0.2) 0 8px 24px;
+  box-shadow: rgb(98 98 98 / 20%) 0 4px 8px 0;
+  cursor: pointer;
 }
 
 .completed {
   background-color: rgb(76, 175, 80, 10%);
-}
-
-.todo-list-item-description-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .completed .todo-list-item-description {
