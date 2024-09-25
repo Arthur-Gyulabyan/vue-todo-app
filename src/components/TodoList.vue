@@ -26,7 +26,6 @@ onGetTodoResult((result) => {
 });
 
 onAddTodoResult((result) => {
-  console.log(result);
   if (result?.data?.onTodoAdded) {
     store.dispatch('addTodoAction', result.data.onTodoAdded);
   }
