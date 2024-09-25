@@ -3,6 +3,7 @@ import type { Todo } from '@/API';
 
 interface State {
   todos: Todo[];
+  snackbar: { open: Boolean; text: String };
 }
 
 const store = createStore({
